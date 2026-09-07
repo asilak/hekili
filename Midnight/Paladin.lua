@@ -8,6 +8,8 @@ if UnitClassBase("player") ~= "PALADIN" then return end
 
 local Safe, Corrections = ns.Safe, ns.Corrections
 
+-- Divine Storm (53385, AoE finisher) is deliberately absent: choosing it over
+-- Templar's Verdict needs enemy count, which is a secret value in 12.x.
 local WORD_OF_GLORY           = 85673
 local SHIELD_OF_THE_RIGHTEOUS = 53600
 local TEMPLARS_VERDICT        = 85256

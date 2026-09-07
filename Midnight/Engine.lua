@@ -61,7 +61,7 @@ driver:SetScript("OnEvent", function(self)
         elapsedAcc = elapsedAcc + elapsed
         if elapsedAcc < POLL_INTERVAL then return end
         elapsedAcc = 0
-        tick()
+        pcall(tick) -- combat hot path: never raise
     end)
 end)
 
@@ -74,5 +74,6 @@ SlashCmdList.HEKILIMIDNIGHT = function()
         return
     end
     local okName, name = pcall(function() return C_Spell.GetSpellName(spellID) end)
-    print(("|cffff8800Hekili-M:|r next = %s (%d)"):format(okName and name or "?", spellID))
+    name = (okName and type(name) == "string") and name or "?"
+    print(("|cffff8800Hekili-M:|r next = %s (%d)"):format(name, spellID))
 end

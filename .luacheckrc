@@ -19509,6 +19509,7 @@ globals = {
 read_globals = {
 	-- 12.x Midnight module APIs
 	"C_AssistedCombat", "C_Spell", "C_Secrets", "C_RestrictedActions",
+	"C_SpecializationInfo",
 	"UnitHealthPercent", "UnitPowerPercent", "UnitPower", "UnitClassBase",
 	"GetSpecialization", "GetSpecializationInfo", "GetBuildInfo",
 	"CreateFrame", "UIParent", "GetActionInfo", "GetBindingKey",

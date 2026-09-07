@@ -10,6 +10,7 @@ local MARKER_SIZE = 12
 local frame = CreateFrame("Frame", "HekiliMidnightDisplay", UIParent)
 frame:SetSize(ICON_SIZE, ICON_SIZE)
 frame:SetMovable(true)
+-- Click-through in combat; movable (SHIFT-drag) only out of combat.
 frame:EnableMouse(true)
 frame:RegisterForDrag("LeftButton")
 frame:SetClampedToScreen(true)
@@ -63,6 +64,8 @@ end
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
+loader:RegisterEvent("PLAYER_REGEN_DISABLED")
+loader:RegisterEvent("PLAYER_REGEN_ENABLED")
 loader:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON then
         HekiliMidnightDB = HekiliMidnightDB or {}
@@ -72,5 +75,9 @@ loader:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_LOGIN" then
         applyPosition()
         ns.Engine.RegisterListener(onRecommendation)
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        frame:EnableMouse(false)
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        frame:EnableMouse(true)
     end
 end)
