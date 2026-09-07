@@ -19502,4 +19502,15 @@ globals = {
 	"ZOOM_OUT",
 	"ZOOM_OUT_BUTTON_TEXT",
 	"_RECORDING_WARNING_CORRUPTED",
+	"SLASH_HEKILIMIDNIGHT1",
+	"HekiliMidnightDB",
+}
+
+read_globals = {
+	-- 12.x Midnight module APIs
+	"C_AssistedCombat", "C_Spell", "C_Secrets", "C_RestrictedActions",
+	"UnitHealthPercent", "UnitPowerPercent", "UnitPower", "UnitClassBase",
+	"GetSpecialization", "GetSpecializationInfo", "GetBuildInfo",
+	"CreateFrame", "UIParent", "GetActionInfo", "GetBindingKey",
+	"HasAction", "IsShiftKeyDown", "Enum", "SlashCmdList", "wipe",
 }
