@@ -7,4 +7,5 @@
 ## SavedVariables: HekiliMidnightDB
 
 Midnight\Engine.lua
+Midnight\Keybinds.lua
 Midnight\Display.lua
