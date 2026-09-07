@@ -19,6 +19,52 @@ function Engine.GetBaseSpell()
     return safeNextSpell()
 end
 
+local POLL_INTERVAL = 0.10 -- seconds; recommendation cadence, cheap call
+
+local listeners = {}
+local current = { spellID = nil, corrected = false, ruleID = nil }
+
+function Engine.RegisterListener(fn)
+    listeners[#listeners + 1] = fn
+end
+
+function Engine.GetCurrent()
+    return current
+end
+
+local function compute()
+    local base = safeNextSpell()
+    local spellID, ruleID = base, nil
+    if ns.Corrections and base then
+        local ok, s, r = pcall(ns.Corrections.Apply, base)
+        if ok and type(s) == "number" then spellID, ruleID = s, r end
+    end
+    return spellID, ruleID
+end
+
+local function tick()
+    local spellID, ruleID = compute()
+    if spellID == current.spellID and ruleID == current.ruleID then return end
+    current.spellID = spellID
+    current.ruleID = ruleID
+    current.corrected = ruleID ~= nil
+    for i = 1, #listeners do
+        pcall(listeners[i], current)
+    end
+end
+
+local driver = CreateFrame("Frame")
+local elapsedAcc = 0
+driver:RegisterEvent("PLAYER_LOGIN")
+driver:SetScript("OnEvent", function(self)
+    self:SetScript("OnUpdate", function(_, elapsed)
+        elapsedAcc = elapsedAcc + elapsed
+        if elapsedAcc < POLL_INTERVAL then return end
+        elapsedAcc = 0
+        tick()
+    end)
+end)
+
 -- Debug probe: /hkm prints the current base recommendation.
 SLASH_HEKILIMIDNIGHT1 = "/hkm"
 SlashCmdList.HEKILIMIDNIGHT = function()
