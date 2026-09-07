@@ -1,61 +1,60 @@
 # Hekili — Project Instructions
 
 ## Project Status
-Retail development **ended January 20, 2026** (Midnight 12.0 prepatch broke the required API).
-The `thewarwithin` branch is the final retail state. Treat changes as maintenance/archival unless told otherwise.
+This fork (`asilak/hekili`, branch `midnight`) revives the addon on WoW 12.x (Midnight) as a
+hybrid: Blizzard's `C_AssistedCombat` recommendations layered with a fail-open correction system.
+Upstream retail development on the original Hekili engine ended **January 20, 2026** (the Midnight
+12.0 prepatch broke the API the old engine depended on); `thewarwithin` remains its final state.
 
-## What This Is
-World of Warcraft addon (pure Lua + WoW API). A rotation "priority helper" that simulates the
-player's future game state and evaluates SimulationCraft-style Action Priority Lists (APLs)
-to recommend the next several abilities.
+## Midnight Module (current architecture)
+`Hekili.toc` (`## Interface: 120105`, `## SavedVariables: HekiliMidnightDB`) loads **only**
+`Midnight/*` — the legacy engine is present in the repo but never loaded:
 
-## Tech Stack
-- Lua 5.1 (WoW flavor), Ace3 framework (AceAddon/AceConfig/AceDB via LibStub)
-- No build step, no package manager for runtime code
-- Libraries are **externals**: `.pkgmeta` pulls Ace3 etc. at package time (BigWigsMods/packager).
-  Only `Libs/SpellFlashCore` is vendored — do not commit other libs into `Libs/`.
+- `Midnight/Engine.lua` — polls `C_AssistedCombat.GetNextCastSpell()`, runs the result through
+  Corrections, notifies listeners; owns the `/hkm` debug slash
+- `Midnight/Corrections.lua` — fail-open per-spec rule registry/pipeline + `ns.Safe` accessors
+  (`Safe.HealthPercent`, `Safe.Power`, `Safe.SpecID`)
+- `Midnight/Paladin.lua` — correction rules for specs 65 (Holy), 66 (Protection), 70 (Retribution)
+- `Midnight/Keybinds.lua` — resolves an action-bar keybind string for a spell ID
+- `Midnight/Display.lua` — movable icon frame driven by `Engine.RegisterListener`
 
-## Load Order & Structure
-`Hekili.toc` defines the exact file load order — new files MUST be added there.
-- Root: core engine — `Hekili.lua` (bootstrap), `State.lua` (simulated game state, ~8k lines),
-  `Classes.lua` (spec/ability/aura registration API), `Scripts.lua` (SimC expression → Lua),
-  `Core.lua` (recommendation loop), `Events.lua`, `Targets.lua` (enemy counting), `UI.lua`
-- `TheWarWithin/` — one module per spec (`MageFire.lua`), plus `Items.lua`, `Classes.lua`
-- `TheWarWithin/Priorities/*.simc` — human-readable APL sources synced from
-  github.com/simulationcraft/simc (`thewarwithin` branch); header comments track upstream commit
-- `Options/` — AceConfig options UI, chat commands, dev tools
-- Legacy expansion data: `BfA/`, `Shadowlands/`, `Dragonflight/`, etc. (loaded per TOC; rarely touched)
-- Other expansions live on **separate git branches** (`wrath`, `cataclysm`, `dragonflight`, ...)
+**Conventions:**
+- Fail-open: `pcall` everything that touches a secret or possibly-missing API; the addon must
+  never raise a Lua error in combat.
+- No external libraries — plain `CreateFrame`, no Ace3.
+- Shared namespace: every file starts `local _, ns = ...` (or `local ADDON, ns = ...` where the
+  addon name is needed).
+- Verification gate: `luacheck Midnight/ --no-color` → `0 warnings / 0 errors in 5 files`.
+- Debug in-game via `/hkm` (prints the current base, uncorrected recommendation).
 
-## Spec Module Pattern (follow exactly)
-1. Class guard first: `if UnitClassBase( "player" ) ~= "MAGE" then return end`
-2. `local spec = Hekili:NewSpecialization( <specID> )`
-3. Localize hot-path globals (`string.format`, `table.insert`, math fns) at top of file
-4. `spec:RegisterResource / RegisterTalents / RegisterAuras / RegisterAbilities / RegisterPack`
-5. `RegisterPack` contains an **encoded pack string** — never hand-edit it. It is regenerated
-   in-game (import the `.simc` APL, export a pack snapshot). Edit the `.simc` file and Lua
-   registrations; the blob is a build artifact.
+**Design docs:** `docs/superpowers/specs/2026-09-07-hekili-midnight-hybrid-design.md`; plan in
+`docs/superpowers/plans/2026-09-07-hekili-midnight-stage1-2.md`.
 
-## Conventions
-- File naming: PascalCase `ClassSpec.lua` matching `ClassSpec.simc`
-- Keys in registration tables: snake_case (`arcane_warding`), matching SimC tokens
-- Commits: short imperative subject; APL updates as `<Spec> APL Sync`; occasional `fix:` prefix
-- PRs merge with merge commits (no squash) into `thewarwithin`
-- Lint: `.luacheckrc` present — run `luacheck .` if available; no test suite exists
-  (do not invent one; verification is in-game)
+## Legacy engine (not loaded; reference only)
+The rest of the repo is the original Hekili simulation engine, kept only for spell-ID and APL
+reference value — none of it is in the Midnight `Hekili.toc` file list.
 
-## CI / Release
-- Tag `v*` → `.github/workflows/main.yml` packages via BigWigsMods/packager and publishes
-  to CurseForge / WoWInterface / Wago
-- `apl-sync-status.yml` (daily cron) diffs `Priorities/*.simc` headers against SimC upstream
-  and opens issues when out of sync
+- Root: `State.lua` (simulated game state), `Classes.lua` (spec/ability registration API),
+  `Scripts.lua` (SimC expression → Lua), `Core.lua` (recommendation loop), `Events.lua`,
+  `Targets.lua`
+- `TheWarWithin/` — one module per spec (e.g. `PaladinRetribution.lua`) plus `Items.lua`; still the
+  best source for verified spell IDs (see how `Midnight/Paladin.lua`'s constants were sourced)
+- `TheWarWithin/Priorities/*.simc` — APL sources synced from the SimC project
+- `Options/` — legacy AceConfig options UI, unused by Midnight
+- The old spec-module pattern (class guard → `Hekili:NewSpecialization` → register
+  resources/talents/auras/abilities → `RegisterPack` with an encoded, machine-generated blob),
+  `.pkgmeta`-vendored Ace3 externals, the `apl-sync-status.yml` daily SimC-sync cron, and the
+  tag-triggered BigWigsMods packager release pipeline (`.github/workflows/main.yml`) all still
+  exist but are dormant for this branch.
 
 ## Testing a Change
-No automated tests. Copy/symlink the repo into `World of Warcraft/_retail_/Interface/AddOns/Hekili`,
-then in-game: `/reload`, `/hekili` for options, Snapshot feature (in options) for APL debugging.
+No automated test suite; `luacheck Midnight/ --no-color` is the automated gate. In-game: copy or
+symlink the repo into `World of Warcraft/_retail_/Interface/AddOns/Hekili`, `/reload`, then use
+`/hkm` and combat with a target dummy to confirm recommendations and corrections.
 
 ## References
 - WoW API reference: https://warcraft.wiki.gg/wiki/World_of_Warcraft_API — canonical docs for the
-  `C_*` namespaces used throughout (`C_Spell`, `C_UnitAuras`, `C_SpellBook`, ...), event system, and
-  protected-function restrictions. Note: wiki tracks current patch (12.x); this repo targets
-  Interface 110205 (11.2.5), so newer namespace changes there may not apply here.
+  `C_*` namespaces (`C_AssistedCombat`, `C_Spell`, `C_SpecializationInfo`, ...), events, and
+  protected/secret-value restrictions. Note: the wiki tracks the current live patch; this branch
+  targets Interface 120105 (12.x, Midnight), so verify namespace behavior against that build
+  rather than assuming wiki parity.

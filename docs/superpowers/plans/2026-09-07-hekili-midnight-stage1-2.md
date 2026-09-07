@@ -639,4 +639,9 @@ git commit -m "feat: paladin correction rules for holy/prot/ret"
 
 **Known deviation from spec:** the display shows only the *current* recommendation — `GetNextCastSpell()` returns a single spell, so the spec's "current + next" queue has no reliable data source yet. Deferred to the UX stage (investigate `C_AssistedCombat.GetRotationSpells()` there).
 
+**Additional accepted deviations (recorded at final review):**
+- The spec's `C_RestrictedActions` self-disable requirement is approximated by fail-open accessors (nil → rules don't fire); explicit restriction detection deferred to the UX stage.
+- Display mouse interception is combat-gated (`PLAYER_REGEN_DISABLED`/`PLAYER_REGEN_ENABLED`) instead of a lock/unlock command — chosen at final review.
+- `Bindings.xml` verified a non-issue: all bindings are commented out upstream (commit `3cf4d1c6`), nothing references legacy globals.
+
 After all tasks pass: push `midnight`, then decide stage 3 (UX: toggles, display styles, options) as a separate spec/plan iteration.
