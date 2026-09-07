@@ -8,5 +8,6 @@
 
 Midnight\Engine.lua
 Midnight\Corrections.lua
+Midnight\Paladin.lua
 Midnight\Keybinds.lua
 Midnight\Display.lua
